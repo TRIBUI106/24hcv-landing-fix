@@ -1755,14 +1755,14 @@
             position: fixed;
             inset: 0;
             z-index: 5000;
-            background: rgba(10, 14, 39, 0.88);
-            backdrop-filter: blur(12px);
+            background: rgba(3, 5, 8, 0.85);
+            backdrop-filter: blur(15px);
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.4s ease, visibility 0.4s ease;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
             padding: 24px;
         }
 
@@ -1773,15 +1773,15 @@
 
         .modal {
             background: var(--navy-800);
-            border: 1px solid rgba(0, 212, 255, 0.2);
-            border-radius: 28px;
-            padding: 48px;
-            max-width: 480px;
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 56px;
+            max-width: 500px;
             width: 100%;
             position: relative;
-            transform: scale(0.85) translateY(40px);
-            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            transform: scale(0.9) translateY(40px);
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: var(--premium-shadow);
             overflow: hidden;
         }
 
@@ -1918,14 +1918,14 @@
         /* ===== SCROLL TO TOP ===== */
         .scroll-top {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, var(--blue-500), var(--blue-400));
+            bottom: 32px;
+            right: 32px;
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: var(--primary);
             border: none;
-            color: var(--white);
+            color: var(--obsidian);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -1933,8 +1933,8 @@
             z-index: 1500;
             opacity: 0;
             transform: translateY(20px);
-            transition: opacity 0.4s, transform 0.4s;
-            box-shadow: 0 8px 24px rgba(43, 69, 195, 0.5);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 10px 30px rgba(0, 245, 255, 0.3);
         }
 
         .scroll-top.visible {
@@ -1943,8 +1943,8 @@
         }
 
         .scroll-top:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 32px rgba(43, 69, 195, 0.7);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 245, 255, 0.5), 0 0 20px var(--primary-glow);
         }
 
         .scroll-top svg {
@@ -2513,25 +2513,18 @@
         const glow = document.getElementById('cursorGlow');
         if (window.matchMedia('(pointer: fine)').matches) {
             let glowX = 0, glowY = 0, targetX = 0, targetY = 0;
-            let lastTime = 0;
-
+            
             document.addEventListener('mousemove', e => {
                 targetX = e.clientX;
                 targetY = e.clientY;
             });
 
-            function animateGlow(currentTime) {
-                if (!lastTime) lastTime = currentTime;
-                const deltaTime = (currentTime - lastTime) / 16.67; // Normalize to 60fps
-                lastTime = currentTime;
+            function animateGlow() {
+                // Spring physics for smoother follow
+                glowX += (targetX - glowX) * 0.15;
+                glowY += (targetY - glowY) * 0.15;
 
-                // Adjusted interpolation with deltaTime to be frame-rate independent
-                const speed = 0.08 * (deltaTime || 1);
-                glowX += (targetX - glowX) * Math.min(speed, 1);
-                glowY += (targetY - glowY) * Math.min(speed, 1);
-
-                glow.style.left = glowX + 'px';
-                glow.style.top = glowY + 'px';
+                glow.style.transform = `translate3d(${glowX}px, ${glowY}px, 0) translate(-50%, -50%)`;
                 requestAnimationFrame(animateGlow);
             }
             requestAnimationFrame(animateGlow);
@@ -2640,23 +2633,44 @@
         const statsSection = document.querySelector('.hero-stats');
         if (statsSection) statsObserver.observe(statsSection);
 
-        /* ===== 3D TILT ON SERVICE CARDS ===== */
+        /* ===== MAGNETIC BUTTONS & SERVICE CARDS ===== */
         if (window.matchMedia('(pointer: fine)').matches) {
+            // Magnetic effect for primary buttons
+            document.querySelectorAll('.btn-primary').forEach(btn => {
+                btn.addEventListener('mousemove', (e) => {
+                    const rect = btn.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    btn.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px)`;
+                });
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.transform = '';
+                });
+            });
+
+            // 3D Tilt + Mouse Tracking for Service Cards
             document.querySelectorAll('.service-card').forEach(card => {
                 card.addEventListener('mousemove', (e) => {
                     const rect = card.getBoundingClientRect();
                     const x = e.clientX - rect.left;
                     const y = e.clientY - rect.top;
+                    
+                    // Update CSS variables for radial gradient
+                    card.style.setProperty('--mouseX', `${x}px`);
+                    card.style.setProperty('--mouseY', `${y}px`);
+
                     const cx = rect.width / 2;
                     const cy = rect.height / 2;
-                    const rx = ((y - cy) / cy) * -5;
-                    const ry = ((x - cx) / cx) * 5;
-                    card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-8px)`;
+                    const rx = ((y - cy) / cy) * -8;
+                    const ry = ((x - cx) / cx) * 8;
+                    
+                    card.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-10px)`;
                     card.style.transition = 'none';
                 });
+
                 card.addEventListener('mouseleave', () => {
-                    card.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s ease, box-shadow 0.5s ease';
-                    card.style.transform = 'perspective(800px) rotateX(0) rotateY(0) translateY(0)';
+                    card.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+                    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)';
                 });
             });
         }
